@@ -1,0 +1,6 @@
+{
+  "name": "@obieg-zero/plugin-brain-quest-reader",
+  "version": "0.2.0",
+  "description": "Czytnik treści z leksykonem, kontekstami i discovery",
+  "private": true
+}
