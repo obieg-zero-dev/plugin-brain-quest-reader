@@ -11,7 +11,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     connectionRevealed: false,
   }))
 
-  type LexMaps = { nidMap: Map<string, string[]>; formMap: Map<string, string[]>; quizMap: Map<string, PostRecord> }
+  type LexMaps = { nidMap: Map<string, string[]>; quizMap: Map<string, PostRecord> }
   const helpers = () => (sdk.shared.getState() as any)?.bqHelpers as {
     discover: (id: string) => void
     edgeStr: (d: PostRecord) => number
@@ -21,12 +21,8 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   } | undefined
   const toMap = (extra: any = {}) => helpers()?.nav?.toMap(extra)
 
-  // Buduje listę MarkdownTerm[] dla ui.Markdown — nazwa terminu + odmiany
-  const buildTerms = (lexEntries: PostRecord[], formMap: Map<string, string[]>) =>
-    lexEntries.map(lex => ({
-      id: lex.id,
-      matchers: [String(lex.data.term), ...(formMap.get(lex.id) || [])],
-    }))
+  const buildTerms = (lexEntries: PostRecord[]) =>
+    lexEntries.map(lex => ({ id: lex.id, term: String(lex.data.term) }))
 
   // --- slajdy ---
   const splitSlides = (texts: string[]): string[] => {
@@ -241,7 +237,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     const nodeContents = store.useChildren(postId, 'content') as PostRecord[]
     const lexicon = store.useChildren(treeId, 'lexicon') as PostRecord[]
     const nodes = store.useChildren(treeId, 'node') as PostRecord[]
-    const { nidMap, formMap } = helpers()!.useLexMaps()
+    const { nidMap } = helpers()!.useLexMaps()
 
     const nodeLexicon = useMemo(() => lexicon.filter(lex => (nidMap.get(lex.id) || []).includes(nodeId)), [lexicon, nodeId, nidMap])
 
@@ -298,7 +294,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
 
           {step.kind === 'slide' && (
             <ui.Card><ui.Stack>
-              <ui.Markdown text={step.text} terms={buildTerms(nodeLexicon, formMap)} onTermClick={(id) => useLocal.setState({ activeTermId: id })} />
+              <ui.Markdown text={step.text} terms={buildTerms(nodeLexicon)} onTermClick={(id) => useLocal.setState({ activeTermId: id })} />
             </ui.Stack></ui.Card>
           )}
 
@@ -308,7 +304,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
 
           {step.kind === 'quiz' && <ui.Stack>
             <ui.Text bold>Quiz</ui.Text>
-            {quizzes.map(q => <QuizCard key={q.id} quiz={q} />)}
+            {quizzes.map(q => <QuizCard key={q.id} quiz={q} terms={buildTerms(nodeLexicon)} />)}
           </ui.Stack>}
 
           <TermPopover />
@@ -329,12 +325,14 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
     )
   }
 
-  function QuizCard({ quiz }: { quiz: PostRecord }) {
+  function QuizCard({ quiz, terms }: { quiz: PostRecord; terms: { id: string; term: string }[] }) {
     const [show, setShow] = useState(false)
+    const onTermClick = (id: string) => useLocal.setState({ activeTermId: id })
     return (
       <ui.Card><ui.Stack>
-        <ui.Text bold>{String(quiz.data.text)}</ui.Text>
-        {show ? <ui.Text size="sm">{String(quiz.data.answer)}</ui.Text>
+        <ui.Markdown text={String(quiz.data.text)} terms={terms} onTermClick={onTermClick} className="font-bold" />
+        {show
+          ? <ui.Markdown text={String(quiz.data.answer)} terms={terms} onTermClick={onTermClick} />
           : <ui.Button size="xs" outline onClick={() => setShow(true)}>Pokaż odpowiedź</ui.Button>}
       </ui.Stack></ui.Card>
     )

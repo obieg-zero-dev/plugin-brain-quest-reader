@@ -16,10 +16,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     var _a, _b;
     return (_b = (_a = helpers()) == null ? void 0 : _a.nav) == null ? void 0 : _b.toMap(extra);
   };
-  const buildTerms = (lexEntries, formMap) => lexEntries.map((lex) => ({
-    id: lex.id,
-    matchers: [String(lex.data.term), ...formMap.get(lex.id) || []]
-  }));
+  const buildTerms = (lexEntries) => lexEntries.map((lex) => ({ id: lex.id, term: String(lex.data.term) }));
   const splitSlides = (texts) => {
     const joined = texts.join("\n\n");
     if (!joined.trim()) return [];
@@ -184,7 +181,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     const nodeContents = store.useChildren(postId, "content");
     const lexicon = store.useChildren(treeId, "lexicon");
     const nodes = store.useChildren(treeId, "node");
-    const { nidMap, formMap } = helpers().useLexMaps();
+    const { nidMap } = helpers().useLexMaps();
     const nodeLexicon = useMemo(() => lexicon.filter((lex) => (nidMap.get(lex.id) || []).includes(nodeId)), [lexicon, nodeId, nidMap]);
     const slides = useMemo(() => {
       const texts = nodeContents.filter((c) => String(c.data.contentType) !== "quiz").map((c) => String(c.data.text));
@@ -232,11 +229,11 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       {
         top: /* @__PURE__ */ jsxs(ui.Stack, { gap: "md", children: [
           /* @__PURE__ */ jsx(ui.StepHeading, { step: `${safeIdx + 1}`, title: String(node.data.title), subtitle: `${safeIdx + 1} / ${steps.length}` }),
-          step.kind === "slide" && /* @__PURE__ */ jsx(ui.Card, { children: /* @__PURE__ */ jsx(ui.Stack, { children: /* @__PURE__ */ jsx(ui.Markdown, { text: step.text, terms: buildTerms(nodeLexicon, formMap), onTermClick: (id) => useLocal.setState({ activeTermId: id }) }) }) }),
+          step.kind === "slide" && /* @__PURE__ */ jsx(ui.Card, { children: /* @__PURE__ */ jsx(ui.Stack, { children: /* @__PURE__ */ jsx(ui.Markdown, { text: step.text, terms: buildTerms(nodeLexicon), onTermClick: (id) => useLocal.setState({ activeTermId: id }) }) }) }),
           step.kind === "connection" && /* @__PURE__ */ jsx(ConnectionScreen, { challenge: step.challenge }),
           step.kind === "quiz" && /* @__PURE__ */ jsxs(ui.Stack, { children: [
             /* @__PURE__ */ jsx(ui.Text, { bold: true, children: "Quiz" }),
-            quizzes.map((q) => /* @__PURE__ */ jsx(QuizCard, { quiz: q }, q.id))
+            quizzes.map((q) => /* @__PURE__ */ jsx(QuizCard, { quiz: q, terms: buildTerms(nodeLexicon) }, q.id))
           ] }),
           /* @__PURE__ */ jsx(TermPopover, {})
         ] }),
@@ -247,11 +244,12 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       }
     ) }) });
   }
-  function QuizCard({ quiz }) {
+  function QuizCard({ quiz, terms }) {
     const [show, setShow] = useState(false);
+    const onTermClick = (id) => useLocal.setState({ activeTermId: id });
     return /* @__PURE__ */ jsx(ui.Card, { children: /* @__PURE__ */ jsxs(ui.Stack, { children: [
-      /* @__PURE__ */ jsx(ui.Text, { bold: true, children: String(quiz.data.text) }),
-      show ? /* @__PURE__ */ jsx(ui.Text, { size: "sm", children: String(quiz.data.answer) }) : /* @__PURE__ */ jsx(ui.Button, { size: "xs", outline: true, onClick: () => setShow(true), children: "Pokaż odpowiedź" })
+      /* @__PURE__ */ jsx(ui.Markdown, { text: String(quiz.data.text), terms, onTermClick, className: "font-bold" }),
+      show ? /* @__PURE__ */ jsx(ui.Markdown, { text: String(quiz.data.answer), terms, onTermClick }) : /* @__PURE__ */ jsx(ui.Button, { size: "xs", outline: true, onClick: () => setShow(true), children: "Pokaż odpowiedź" })
     ] }) });
   }
   function LeftPanel() {
