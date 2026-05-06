@@ -22,7 +22,17 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
   const toMap = (extra: any = {}) => helpers()?.nav?.toMap(extra)
 
   const buildTerms = (lexEntries: PostRecord[]) =>
-    lexEntries.map(lex => ({ id: lex.id, term: String(lex.data.term) }))
+    lexEntries.map(lex => {
+      const formsRaw = String(lex.data.forms || '')
+      let forms: string[] = []
+      if (formsRaw) { try { const parsed = JSON.parse(formsRaw); if (Array.isArray(parsed)) forms = parsed.map(String) } catch {} }
+      return { id: lex.id, term: String(lex.data.term), forms }
+    })
+
+  const goToLoader = (name?: string) => {
+    if (name) sdk.log(`Termin "${name}" niezaładowany — sprawdź dostępne paczki`, 'info')
+    sdk.useHostStore.setState({ activeId: 'plugin-bq-loader' })
+  }
 
   // --- slajdy ---
   const splitSlides = (texts: string[]): string[] => {
@@ -294,7 +304,7 @@ const plugin: PluginFactory = ({ React, ui, store, sdk, icons }) => {
 
           {step.kind === 'slide' && (
             <ui.Card><ui.Stack>
-              <ui.Markdown text={step.text} terms={buildTerms(nodeLexicon)} onTermClick={(id) => useLocal.setState({ activeTermId: id })} />
+              <ui.Markdown text={step.text} terms={buildTerms(nodeLexicon)} onTermClick={(id) => useLocal.setState({ activeTermId: id })} onMissingTermClick={goToLoader} />
             </ui.Stack></ui.Card>
           )}
 

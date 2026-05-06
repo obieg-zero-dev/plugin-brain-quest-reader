@@ -16,7 +16,22 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
     var _a, _b;
     return (_b = (_a = helpers()) == null ? void 0 : _a.nav) == null ? void 0 : _b.toMap(extra);
   };
-  const buildTerms = (lexEntries) => lexEntries.map((lex) => ({ id: lex.id, term: String(lex.data.term) }));
+  const buildTerms = (lexEntries) => lexEntries.map((lex) => {
+    const formsRaw = String(lex.data.forms || "");
+    let forms = [];
+    if (formsRaw) {
+      try {
+        const parsed = JSON.parse(formsRaw);
+        if (Array.isArray(parsed)) forms = parsed.map(String);
+      } catch {
+      }
+    }
+    return { id: lex.id, term: String(lex.data.term), forms };
+  });
+  const goToLoader = (name) => {
+    if (name) sdk.log(`Termin "${name}" niezaładowany — sprawdź dostępne paczki`, "info");
+    sdk.useHostStore.setState({ activeId: "plugin-bq-loader" });
+  };
   const splitSlides = (texts) => {
     const joined = texts.join("\n\n");
     if (!joined.trim()) return [];
@@ -229,7 +244,7 @@ const plugin = ({ React, ui, store, sdk, icons }) => {
       {
         top: /* @__PURE__ */ jsxs(ui.Stack, { gap: "md", children: [
           /* @__PURE__ */ jsx(ui.StepHeading, { step: `${safeIdx + 1}`, title: String(node.data.title), subtitle: `${safeIdx + 1} / ${steps.length}` }),
-          step.kind === "slide" && /* @__PURE__ */ jsx(ui.Card, { children: /* @__PURE__ */ jsx(ui.Stack, { children: /* @__PURE__ */ jsx(ui.Markdown, { text: step.text, terms: buildTerms(nodeLexicon), onTermClick: (id) => useLocal.setState({ activeTermId: id }) }) }) }),
+          step.kind === "slide" && /* @__PURE__ */ jsx(ui.Card, { children: /* @__PURE__ */ jsx(ui.Stack, { children: /* @__PURE__ */ jsx(ui.Markdown, { text: step.text, terms: buildTerms(nodeLexicon), onTermClick: (id) => useLocal.setState({ activeTermId: id }), onMissingTermClick: goToLoader }) }) }),
           step.kind === "connection" && /* @__PURE__ */ jsx(ConnectionScreen, { challenge: step.challenge }),
           step.kind === "quiz" && /* @__PURE__ */ jsxs(ui.Stack, { children: [
             /* @__PURE__ */ jsx(ui.Text, { bold: true, children: "Quiz" }),
